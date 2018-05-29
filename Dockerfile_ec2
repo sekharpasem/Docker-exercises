@@ -1,0 +1,56 @@
+FROM ubuntu:17.10
+
+RUN mkdir out
+
+
+
+RUN sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get -y upgrade
+RUN apt install -y python3-pip python3.6
+
+RUN pip3 install requests
+
+RUN pip3 install cortex_client
+
+RUN pip3 install pandas
+
+RUN pip3 install --default-timeout=100 sklearn
+RUN pip3 install --default-timeout=100 scipy
+RUN pip3 install --default-timeout=100 pymongo
+
+RUN apt-get install -y default-jre
+RUN apt-get install -y ssh rsync gnupg
+ADD . /
+RUN mkdir ~/.gnupg
+RUN cp gnupg-keys/.gnupg/gpg.conf ~/.gnupg
+RUN cp gnupg-keys/.gnupg/pubring.gpg ~/.gnupg
+RUN cp gnupg-keys/.gnupg/pubring.gpg~ ~/.gnupg
+RUN cp gnupg-keys/.gnupg/random_seed ~/.gnupg
+RUN cp gnupg-keys/.gnupg/secring.gpg ~/.gnupg
+RUN cp gnupg-keys/.gnupg/trustdb.gpg ~/.gnupg
+
+RUN cp gnupg-keys/.gnupg/AscensionHealthSymphony.asc ~/.gnupg
+RUN gpg --import ~/.gnupg/AscensionHealthSymphony.asc
+
+RUN mkdir ~/.ssh
+RUN cp ssh-keys/.ssh/id_rsa ~/.ssh
+RUN cp ssh-keys/.ssh/id_rsa.pub ~/.ssh
+RUN chmod 400 ~/.ssh/id_rsa
+RUN chmod 400 ~/.ssh/id_rsa.pub
+RUN cp ssh-keys/.ssh/known_hosts ~/.ssh
+RUN ls -lath ~/.ssh
+RUN ["chmod", "+x", "scripts/run_sftp_job.sh"]
+RUN ["chmod", "+x", "scripts/run_sftp_job_p1.sh"]
+
+RUN mkdir /mongodb
+RUN cp mongo/mongodbcert.crt /mongodb
+RUN cp mongo/mongostore /mongodb
+
+COPY model /opt/ascension/
+
+#RUN eval `ssh-agent -s`
+#RUN ssh-add -K ~/.ssh/id_rsa
+#RUN ssh-keygen -R sftp-ascension.c1.io
+
+ENTRYPOINT scripts/run_sftp_job.sh;
